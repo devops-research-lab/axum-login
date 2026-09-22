@@ -1,83 +1,89 @@
 name: Rust
-
 on:
-  push:
-    branches:
-      - main
-  pull_request: {}
-
+  push: null
 env:
   CARGO_TERM_COLOR: always
-
 jobs:
-  check:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          rustup toolchain install nightly --profile minimal --component rustfmt --component clippy
-      - uses: Swatinem/rust-cache@v2
-      - name: clippy
-        run: |
-          cargo clippy --all --all-targets --all-features -- -Dwarnings
-      - name: rustfmt
-        run: |
-          cargo +nightly fmt --all -- --check
-
   check-docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: |
-          rustup toolchain install stable --profile minimal
-      - uses: Swatinem/rust-cache@v2
-      - name: cargo doc
-        env:
-          RUSTDOCFLAGS: "-D rustdoc::broken-intra-doc-links"
-        run: |
-          cargo doc --all-features --no-deps
+    - uses: actions/checkout@v4
+    - run: 'rustup toolchain install stable --profile minimal
 
-  test-docs:
-    needs: check
+        '
+    - uses: Swatinem/rust-cache@v2
+    - name: cargo doc
+      env:
+        RUSTDOCFLAGS: -D rustdoc::broken-intra-doc-links
+      run: 'cargo doc --all-features --no-deps
+
+        '
+  check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: |
-          rustup toolchain install nightly --profile minimal
-      - uses: Swatinem/rust-cache@v2
-      - name: Run doc tests
-        run: |
-          cargo test --all-features --doc
+    - uses: actions/checkout@v4
+    - run: 'rustup toolchain install nightly --profile minimal --component rustfmt --component clippy
 
-  test-lib:
-    needs: check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          rustup toolchain install nightly --profile minimal
-          cargo install cargo-tarpaulin
-      - uses: Swatinem/rust-cache@v2
-      - name: Run lib tests
-        run: |
-          cargo test --workspace --all-features --lib
-          cargo tarpaulin --workspace --all-features --lib -olcov
-      - name: Upload coverage data to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          fail_ci_if_error: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        '
+    - uses: Swatinem/rust-cache@v2
+    - name: clippy
+      run: 'cargo clippy --all --all-targets --all-features -- -Dwarnings
 
-  test-integration:
-    needs: check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: |
-          rustup toolchain install stable --profile minimal
-      - uses: Swatinem/rust-cache@v2
-      - name: Run integration tests
-        run: |
-          cargo test --test integration-test
+        '
+    - name: rustfmt
+      run: 'cargo +nightly fmt --all -- --check
+
+        '
+      id: _bre_check
+    - run: 'rustup toolchain install nightly --profile minimal
+
+        '
+    - uses: Swatinem/rust-cache@v2
+    - name: Run doc tests
+      run: 'cargo test --all-features --doc
+
+        '
+    - run: 'rustup toolchain install nightly --profile minimal
+
+        cargo install cargo-tarpaulin
+
+        '
+      if: '!cancelled() && steps._bre_check.conclusion == ''success'''
+      id: _m_test_lib
+    - uses: Swatinem/rust-cache@v2
+      if: '!cancelled() && steps._bre_check.conclusion == ''success'' && steps._m_test_lib.conclusion
+        != ''failure'''
+      id: _m_test_lib_1
+    - name: Run lib tests
+      run: 'cargo test --workspace --all-features --lib
+
+        cargo tarpaulin --workspace --all-features --lib -olcov
+
+        '
+      if: '!cancelled() && steps._bre_check.conclusion == ''success'' && steps._m_test_lib.conclusion
+        != ''failure'' && steps._m_test_lib_1.conclusion != ''failure'''
+      id: _m_test_lib_2
+    - name: Upload coverage data to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        fail_ci_if_error: true
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      if: '!cancelled() && steps._bre_check.conclusion == ''success'' && steps._m_test_lib.conclusion
+        != ''failure'' && steps._m_test_lib_1.conclusion != ''failure'' && steps._m_test_lib_2.conclusion
+        != ''failure'''
+    - run: 'rustup toolchain install stable --profile minimal
+
+        '
+      if: '!cancelled() && steps._bre_check.conclusion == ''success'''
+      id: _m_test_integration
+    - uses: Swatinem/rust-cache@v2
+      if: '!cancelled() && steps._bre_check.conclusion == ''success'' && steps._m_test_integration.conclusion
+        != ''failure'''
+      id: _m_test_integration_1
+    - name: Run integration tests
+      run: 'cargo test --test integration-test
+
+        '
+      if: '!cancelled() && steps._bre_check.conclusion == ''success'' && steps._m_test_integration.conclusion
+        != ''failure'' && steps._m_test_integration_1.conclusion != ''failure'''
